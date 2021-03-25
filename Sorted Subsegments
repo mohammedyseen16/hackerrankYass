@@ -2,21 +2,149 @@ import java.io.*;
 import java.util.*;
 
 public class Solution {
-
-    public static void main(String[] args) {
-        Scanner input = new Scanner(System.in);
-        int n = input.nextInt();
-        int q = input.nextInt();
-        int k = input.nextInt();
-        int[] array = new int[n];
-        for(int i=0; i<n; i++){
-            array[i] = input.nextInt();
-        }
-        for(int i=0; i<q; i++){
-            int r = input.nextInt();
-            int s = input.nextInt();
-            Arrays.parallelSort(array,r,s+1);
-        }
-         System.out.println(array[k]);
+  private static InputReader in;
+  private static PrintWriter out;
+  
+  public static int[] brr;
+  
+  static class SegmentTree {
+    public SegmentTree left, right;
+    public int nones, start, end;
+    public int pushval;
+    
+    public SegmentTree(int start, int end) {
+      this.start = start;
+      this.end = end;
+      this.pushval = -1;
+      if (start != end) {
+        int mid = (start + end) >> 1;
+        left = new SegmentTree(start, mid);
+        right = new SegmentTree(mid+1, end);
+        nones = left.nones + right.nones;
+      } else {
+        nones = brr[start] == 1 ? 1 : 0;
+      }
     }
+    
+    public int size() {
+      return end-start+1;
+    }
+    
+    public void push() {
+      if (left == null) return;
+      if (pushval == -1) return;
+      left.nones = pushval == 1 ? left.size() : 0;
+      left.pushval = pushval;
+      right.nones = pushval == 1 ? right.size() : 0;
+      right.pushval = pushval;
+      pushval = -1;
+    }
+    public void join() {
+      if (left == null) return;
+      this.nones = left.nones+right.nones;
+    }
+    
+    public int count(int s, int e) {
+      if (start == s && end == e) return nones;
+      push();
+      int mid = (start + end) >> 1;
+      if (mid >= e) return left.count(s, e);
+      else if (mid < s) return right.count(s,e);
+      else return left.count(s,mid)+right.count(mid+1,e);
+    }
+    
+    public void set(int s, int e, int val) {
+      if (s > e) return;
+      if (start == s && end == e) {
+        this.pushval = val;
+        this.nones = val == 1 ? this.size() : 0;
+        return;
+      }
+      push();
+      int mid = (start+end) >> 1;
+      if (mid >= e) {left.set(s, e, val);}
+      else if (mid < s) {right.set(s,e,val);}
+      else {
+        left.set(s,mid,val);
+        right.set(mid+1,e,val);
+      }
+      join();
+    }
+  }
+
+  public static void main(String[] args) throws IOException {
+    in = new InputReader(System.in);
+    out = new PrintWriter(System.out, true);
+
+    int n = in.nextInt(), q = in.nextInt(), k = in.nextInt();
+    int[] arr = new int[n];
+    for (int i = 0; i < n; i++) {
+      arr[i] = in.nextInt();
+    }
+    HashSet<Integer> dis = new HashSet<>();
+    for (int i = 0; i < n; i++) {
+      dis.add(arr[i]);
+    }
+    ArrayList<Integer> ls = new ArrayList<>(dis);
+    Collections.sort(ls);
+    
+    int[] l = new int[q];
+    int[] r = new int[q];
+    for (int i = 0; i < q; i++) {
+      l[i] = in.nextInt();
+      r[i] = in.nextInt();
+    }
+    
+    int lo = 0, hi = ls.size()-1;
+    while(lo<hi) {
+      int mid = (lo+hi+1) >> 1;
+      brr = new int[n];
+      for (int i = 0; i < n; i++) {
+        brr[i] = arr[i] < ls.get(mid) ? 0 : 1;
+      }
+      SegmentTree root = new SegmentTree(0, n-1);
+      for (int i = 0; i < q; i++) {
+        int a = root.count(l[i], r[i]);
+        root.set(l[i], r[i], 0);
+        root.set(r[i]-a+1, r[i], 1);
+      }
+      int x = root.count(k, k);
+      if (x == 1) {
+        lo = mid;
+      } else {
+        hi = mid-1;
+      }
+    }
+    
+    out.println(ls.get(lo));
+    out.close();
+    System.exit(0);
+  }
+
+  static class InputReader {
+    public BufferedReader reader;
+    public StringTokenizer tokenizer;
+
+    public InputReader(InputStream stream) {
+      reader = new BufferedReader(new InputStreamReader(stream), 32768);
+      tokenizer = null;
+    }
+
+    public String next() {
+      while (tokenizer == null || !tokenizer.hasMoreTokens()) {
+        try {
+          tokenizer = new StringTokenizer(reader.readLine());
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      return tokenizer.nextToken();
+    }
+
+    public int nextInt() {
+      return Integer.parseInt(next());
+    }
+  }
+
+
 }
